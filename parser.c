@@ -4,16 +4,17 @@
 #include "parser.h"
 
 /* -------------------- flux et buffer -------------------- */
-static FILE *fin = NULL;           /* ouvrira "output.txt" produit par le scanner */
-static char lexeme[512];           /* pour stocker ID(x) ou INT(123) ... */
-static token lookahead = UNKNOWN_TOK;
-static int error_count = 0;
+FILE *fin = NULL;           /* ouvrira "output.txt" produit par le scanner */
+char lexeme[512];           /* pour stocker ID(x) ou INT(123) ... */
+token lookahead = UNKNOWN_TOK;
+int error_count = 0;
 
-/* forward */
-static token read_token_from_file(void);
+/* forward declarations */
+token read_token_from_file(void);
+token map_line_to_token(const char *line);
 
 /* Convertit une ligne de output.txt en token enum et met à jour lexeme */
-static token map_line_to_token(const char *line) {
+token map_line_to_token(const char *line) {
     if (line == NULL) return SCANEOF;
 
     /* supprimer espaces de début/fin */
@@ -42,8 +43,7 @@ static token map_line_to_token(const char *line) {
 
     /* ID(...)  INT(...)  REAL(...) */
     if (strncmp(tmp, "ID(", 3) == 0 && tmp[len-1] == ')') {
-        /* copier le contenu entre parenthèses dans lexeme sans ID( ) */
-        size_t content_len = len - 4; /* len minus "ID(" and ")" */
+        size_t content_len = len - 4;
         if (content_len > sizeof(lexeme)-1) content_len = sizeof(lexeme)-1;
         strncpy(lexeme, tmp + 3, content_len);
         lexeme[content_len] = '\0';
@@ -64,21 +64,18 @@ static token map_line_to_token(const char *line) {
         return REALLITERAL;
     }
 
-    /* Si on arrive ici, on n'a pas reconnu la ligne -> UNKNOWN_TOK */
     strcpy(lexeme, tmp);
     return UNKNOWN_TOK;
 }
 
 /* Lit la prochaine ligne de output.txt et transforme en token */
-static token read_token_from_file(void) {
-    static char line[512];
+token read_token_from_file(void) {
+    char line[512];
     if (fin == NULL) return SCANEOF;
     if (fgets(line, sizeof(line), fin) == NULL) {
         return SCANEOF;
     }
-    /* transforme la ligne en token et stocke lexeme si besoin */
-    token t = map_line_to_token(line);
-    return t;
+    return map_line_to_token(line);
 }
 
 /* next_token : renvoie le token courant (lookahead) sans le consommer */
@@ -89,19 +86,16 @@ token next_token(void) {
 /* match : si token courant == t -> consomme (lit le suivant), sinon syntax_error */
 void match(token t) {
     if (lookahead == t) {
-        /* consommer : lire le token suivant */
         lookahead = read_token_from_file();
     } else {
         syntax_error(t);
-        /* tentative de récupération : si le prochain token est t, on le consomme */
         if (lookahead != SCANEOF) lookahead = read_token_from_file();
     }
 }
 
-/* error printing : on affiche l'erreur avec le token trouvé et le token attendu */
+/* error printing : affiche l'erreur avec token trouvé et attendu */
 void syntax_error(token expected) {
     error_count++;
-    /* afficher le token attendu lisible */
     const char *expected_s;
     switch (expected) {
         case BEGIN: expected_s = "BEGIN"; break;
@@ -122,7 +116,6 @@ void syntax_error(token expected) {
         default: expected_s = "UNKNOWN"; break;
     }
 
-    /* trouver nom du token courant pour message */
     const char *found_s;
     switch (lookahead) {
         case BEGIN: found_s = "BEGIN"; break;
@@ -152,10 +145,7 @@ void syntax_error(token expected) {
 }
 
 /* ---------------------- Fonctions de la grammaire ---------------------- */
-
-/* system goal: <system goal> :: <program> SCANEOF */
 void system_goal(void) {
-    /* initialisation : lookahead = first token */
     lookahead = read_token_from_file();
     program();
     if (lookahead != SCANEOF) {
@@ -163,17 +153,14 @@ void system_goal(void) {
     }
 }
 
-/* <program> :: begin <inst_list> end */
 void program(void) {
     match(BEGIN);
     inst_list();
     match(END);
 }
 
-/* <inst_list> ::= <inst> { <inst> } */
 void inst_list(void) {
     inst();
-    /* répéter tant que le prochain token peut commencer une instruction */
     while (1) {
         token t = next_token();
         if (t == ID || t == READ || t == WRITE) {
@@ -184,7 +171,6 @@ void inst_list(void) {
     }
 }
 
-/* <inst> ::= ID := <expr> ;  | READ(LIST) ; | WRITE(LIST) ; */
 void inst(void) {
     token t = next_token();
     switch (t) {
@@ -209,14 +195,12 @@ void inst(void) {
             match(SEMICOLON);
             break;
         default:
-            syntax_error(ID); /* on attendait une instruction */
-            /* tentative de récupération : consommer un token pour avancer */
+            syntax_error(ID);
             if (lookahead != SCANEOF) lookahead = read_token_from_file();
             break;
     }
 }
 
-/* <id_list> ::= ID { , ID } */
 void id_list(void) {
     match(ID);
     while (next_token() == COMMA) {
@@ -225,7 +209,6 @@ void id_list(void) {
     }
 }
 
-/* <expr> ::= <prim> { <addop> <prim> } */
 void expression(void) {
     prim();
     while (1) {
@@ -237,7 +220,6 @@ void expression(void) {
     }
 }
 
-/* <expr_list> ::= <expr> { , <expr> } */
 void expr_list(void) {
     expression();
     while (next_token() == COMMA) {
@@ -246,14 +228,12 @@ void expr_list(void) {
     }
 }
 
-/* <add_op> ::= PLUSOP | MINUSOP */
 void add_op(void) {
     token t = next_token();
     if (t == PLUSOP || t == MINUSOP) match(t);
     else syntax_error(PLUSOP);
 }
 
-/* <prim> ::= ( <expr> ) | ID | INTLITERAL | REALLITERAL */
 void prim(void) {
     token t = next_token();
     switch (t) {
@@ -273,7 +253,6 @@ void prim(void) {
             break;
         default:
             syntax_error(ID);
-            /* récupération: consommer un token */
             if (lookahead != SCANEOF) lookahead = read_token_from_file();
             break;
     }
@@ -281,16 +260,16 @@ void prim(void) {
 
 /* ---------------------- main du parser ---------------------- */
 int main(void) {
-    fin = fopen("output.txt", "r"); /* fichier produit par le scanner */
+    fin = fopen("output.txt", "r");
     if (!fin) {
-        fprintf(stderr, "Impossible d'ouvrir output.txt (généré par ton scanner). Generer d'abord le fichier avec le scanner.\n");
+        fprintf(stderr, "Impossible d'ouvrir output.txt (scanner doit le générer d'abord).\n");
         return 1;
     }
 
     system_goal();
 
     if (error_count == 0) {
-        printf("Parsing terminé : aucune erreur de syntaxe detectee.\n");
+        printf("Parsing termine : aucune erreur de syntaxe detectee.\n");
     } else {
         printf("Parsing termine : %d erreur(s) de syntaxe detectee(s).\n", error_count);
     }
