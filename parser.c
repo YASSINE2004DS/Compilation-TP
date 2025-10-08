@@ -63,7 +63,7 @@ token map_line_to_token(const char *line) {
         lexeme[content_len] = '\0';
         return REALLITERAL;
     }
-
+    printf("mot : %s  \n" , tmp);
     strcpy(lexeme, tmp);
     return UNKNOWN_TOK;
 }
