@@ -4,6 +4,8 @@
 #include <ctype.h>
 #include "parser.h"
 
+
+
 /* -------------------- flux et buffer -------------------- */
 FILE *fin = NULL; /* ouvrira "output.txt" produit par le scanner */
 char lexeme[512]; /* pour stocker ID(x) ou INT(123) ... */
