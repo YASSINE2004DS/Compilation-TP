@@ -8,7 +8,7 @@
 FILE *fin = NULL; /* ouvrira "output.txt" produit par le scanner */
 char lexeme[512]; /* pour stocker ID(x) ou INT(123) ... */
 token lookahead = UNKNOWN_TOK;
-int error_count = 0 , ligne_courant = 1;
+int error_count = 0, ligne_courant = 1;
 
 /* forward declarations */
 token read_token_from_file(void);
@@ -29,8 +29,8 @@ token map_line_to_token()
     /* sauter les espaces de debut et du fin de l'UL */
     while ((car = fgetc(fin)) != EOF && isspace(car))
     {
-        if(car == (int)'\n')
-            ligne_courant++ ;
+        if (car == (int)'\n')
+            ligne_courant++;
     }
 
     if (car == EOF)
@@ -183,9 +183,7 @@ void syntax_error(token expected)
         break;
     }
 
-
-     fprintf(stderr, "Syntax error in line %d : expected %s \n", ligne_courant , expected_s);
-
+    fprintf(stderr, "Syntax error in line %d : expected %s \n", ligne_courant, expected_s);
 }
 
 /* ---------------------- Fonctions de la grammaire ---------------------- */
@@ -347,5 +345,5 @@ int main(void)
     }
 
     fclose(fin);
-    return (error_count == 0) ? 0 : 2 ;
+    return (error_count == 0) ? 0 : 2;
 }

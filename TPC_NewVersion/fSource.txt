@@ -1,5 +1,5 @@
 begin
    x := 5 ;
-   y := x + ;
+   y := x + 10 ;
    write((5+5+m));
 end

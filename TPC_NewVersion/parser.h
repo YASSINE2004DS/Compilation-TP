@@ -1,5 +1,6 @@
-#ifndef PARSER_H
-#define PARSER_H
+
+
+
 
 /* Même énum des tokens que la sortie de ton scanner */
 typedef enum {
@@ -24,4 +25,3 @@ void syntax_error(token expected);
 void match(token t);
 token next_token(void);
 
-#endif
